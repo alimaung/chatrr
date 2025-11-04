@@ -179,59 +179,9 @@ function Start-Chat {
     $writer = New-Object System.IO.StreamWriter($script:stream, [System.Text.Encoding]::UTF8)
     $writer.AutoFlush = $true
     
-    # Create runspace for receiving messages
-    $receiveRunspace = [runspacefactory]::CreateRunspace()
-    $receiveRunspace.Open()
-    $receivePS = [PowerShell]::Create()
-    $receivePS.Runspace = $receiveRunspace
-    
-    $receiveScript = {
-        param($stream, $reader)
-        $messages = New-Object System.Collections.ArrayList
-        while ($true) {
-            try {
-                if ($stream.DataAvailable) {
-                    $line = $reader.ReadLine()
-                    if ($line) {
-                        [void]$messages.Add($line)
-                    }
-                } else {
-                    Start-Sleep -Milliseconds 100
-                }
-                if (-not $stream.CanRead) {
-                    break
-                }
-            } catch {
-                break
-            }
-        }
-        return $messages
-    }
-    
-    $receivePS.AddScript($receiveScript).AddArgument($script:stream).AddArgument($reader) | Out-Null
-    $receiveHandle = $receivePS.BeginInvoke()
-    
-    # Main chat loop
+    # Main chat loop - simplified polling approach
     while ($script:client.Connected -and $script:isRunning) {
-        # Check for received messages (non-blocking)
-        if ($receiveHandle.IsCompleted) {
-            $received = $receivePS.EndInvoke($receiveHandle)
-            if ($received) {
-                foreach ($msg in $received) {
-                    if ($msg) {
-                        if ($msg -match "^(/quit|/exit)$") {
-                            Write-Host "Server disconnected." -ForegroundColor Yellow
-                            $script:isRunning = $false
-                            break
-                        }
-                        Write-Host "Them: $msg" -ForegroundColor Yellow
-                    }
-                }
-            }
-            break
-        }
-        
-        # Check if data is available (quick check)
+        # Check if data is available (non-blocking check)
         if ($script:stream.DataAvailable) {
             try {
                 $line = $reader.ReadLine()
@@ -249,48 +199,49 @@ function Start-Chat {
             }
         }
         
-        # Read user input (this will block, but we check receive above)
-        try {
-            $input = Read-Host
-            if ($input.Trim() -eq "") {
-                continue
-            }
-            
-            # Check for quit command
-            if ($input.Trim() -match "^(/quit|/exit)$") {
-                try {
-                    $writer.WriteLine("/quit")
-                    Write-Host "Disconnecting..." -ForegroundColor Yellow
-                } catch {
-                    # Ignore write errors on disconnect
-                }
-                break
-            }
-            
-            # Send message
+        # Check for user input (non-blocking check)
+        if ([Console]::KeyAvailable) {
             try {
-                $writer.WriteLine($input)
-                Write-Host "You: $input" -ForegroundColor Cyan
+                $input = Read-Host
+                if ($input.Trim() -eq "") {
+                    continue
+                }
+                
+                # Check for quit command
+                if ($input.Trim() -match "^(/quit|/exit)$") {
+                    try {
+                        $writer.WriteLine("/quit")
+                        Write-Host "Disconnecting..." -ForegroundColor Yellow
+                    } catch {
+                        # Ignore write errors on disconnect
+                    }
+                    break
+                }
+                
+                # Send message
+                try {
+                    $writer.WriteLine($input)
+                    Write-Host "You: $input" -ForegroundColor Cyan
+                } catch {
+                    Write-Host "Failed to send message. Connection lost?" -ForegroundColor Red
+                    break
+                }
             } catch {
-                Write-Host "Failed to send message. Connection lost?" -ForegroundColor Red
+                # Input error (Ctrl+C handled separately)
                 break
             }
-        } catch {
-            # Input error (Ctrl+C handled separately)
-            break
+        } else {
+            # No input ready, brief pause to allow receive processing
+            Start-Sleep -Milliseconds 50
         }
         
-        # Brief pause to allow receive processing
-        Start-Sleep -Milliseconds 50
+        # Check connection status
+        if (-not $script:client.Connected) {
+            break
+        }
     }
     
     # Cleanup
-    if ($receiveHandle) {
-        try {
-            $receivePS.Stop()
-            $receiveRunspace.Close()
-        } catch {}
-    }
     try {
         $reader.Close()
         $writer.Close()
