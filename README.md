@@ -47,20 +47,41 @@ Or with a custom port:
 .\server.ps1 -Port 9999
 ```
 
-The server will display:
-- Local IP address(es)
-- Listening port
-- Wait for client connection
+Or with a custom IP file path (for network sharing):
+
+```powershell
+.\server.ps1 -IPFilePath "\\SharedFolder\chatrr"
+```
+
+The server will:
+- Display your IP address prominently highlighted (e.g., `192.168.1.100`)
+- **Automatically create IP files** in `%TEMP%\chatrr` (or your custom path)
+- Each IP address gets its own file (filename = IP, content = port)
+- Show the file location so clients can auto-detect
+
+**Important:** The server IP address will be displayed in a highlighted box. The server also writes IP files that clients can automatically detect.
 
 ### 3. Connect the Client
 
 On **PC 2** (the client):
 
+#### Option A: Auto-Detection (Recommended)
+
+If both PCs can access the same file path (e.g., shared network folder or same `%TEMP%` location):
+
 ```powershell
 .\client.ps1
 ```
 
-Or specify server IP directly:
+The client will:
+- **Automatically scan for server IP files** in `%TEMP%\chatrr` (or custom path)
+- If found, prompt: "Found server IP file: 192.168.1.100, Use this server? (Y/n)"
+- Auto-detect the port from the file
+- Connect automatically (no manual IP entry needed!)
+
+#### Option B: Manual Entry
+
+If auto-detection doesn't work or you want to specify manually:
 
 ```powershell
 .\client.ps1 -ServerIP 192.168.1.100
@@ -72,12 +93,17 @@ Or with custom port:
 .\client.ps1 -ServerIP 192.168.1.100 -Port 9999
 ```
 
-The client will:
-- Prompt for server IP (if not provided)
-- Prompt for port (if not provided, defaults to 12345)
-- Connect to the server
+#### Option C: Custom IP File Path
 
-### 4. Start Chatting!
+If using a shared network folder:
+
+```powershell
+.\client.ps1 -IPFilePath "\\SharedFolder\chatrr"
+```
+
+This will scan that path for server IP files and auto-detect.
+
+### 5. Start Chatting!
 
 Once connected:
 - Type your messages and press Enter
@@ -86,9 +112,55 @@ Once connected:
   - `Them: [their message]` (in yellow)
 - Type `/quit` or `/exit` to disconnect gracefully
 
+## IP File Sharing (Auto-Detection)
+
+### How It Works
+
+The server automatically creates files with IP addresses as filenames (no extension) in a specified directory. The client can scan this directory to automatically find and connect to servers.
+
+**Default Location:** `%TEMP%\chatrr` (usually `C:\Users\YourName\AppData\Local\Temp\chatrr`)
+
+**File Format:**
+- **Filename:** IP address (e.g., `192.168.1.100`)
+- **Content:** Port number (e.g., `12345`)
+
+### Setting Up Shared Path
+
+For best results, use a shared network folder that both PCs can access:
+
+**On Server:**
+```powershell
+.\server.ps1 -IPFilePath "\\SharedFolder\chatrr"
+```
+
+**On Client:**
+```powershell
+.\client.ps1 -IPFilePath "\\SharedFolder\chatrr"
+```
+
+### Local Temp Folder
+
+If both PCs are on the same machine or have synchronized temp folders, the default `%TEMP%\chatrr` works automatically. Otherwise, use a shared network path.
+
 ## Finding Your IP Address
 
-If you need to find your server's IP address:
+### For Server Users
+
+The server script automatically detects and displays your IP address when it starts. It will be shown in a highlighted box like:
+
+```
+----------------------------------------
+  SERVER IP ADDRESS (share this!):
+----------------------------------------
+  >>> 192.168.1.100 <<<
+----------------------------------------
+```
+
+The server also creates IP files automatically for client auto-detection.
+
+### Manual IP Lookup
+
+If the server doesn't show an IP or you need to verify it:
 
 **Method 1: PowerShell**
 ```powershell
@@ -99,7 +171,13 @@ Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.IPAddress -notlike "127.
 ```cmd
 ipconfig
 ```
-Look for "IPv4 Address" under your active network adapter (usually not 127.0.0.1).
+Look for "IPv4 Address" under your active network adapter (usually not 127.0.0.1). It will look like `192.168.1.XXX` or `10.0.0.XXX`.
+
+### For Client Users
+
+The client will prompt you for the server IP. You need to get this from the person running the server. They can:
+- Read it from the server terminal (it's displayed prominently)
+- Run `ipconfig` on the server PC and share the IPv4 address
 
 ## Troubleshooting
 

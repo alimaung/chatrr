@@ -2,7 +2,8 @@
 # TCP Socket Server for Local Network Chat
 
 param(
-    [int]$Port = 12345
+    [int]$Port = 12345,
+    [string]$IPFilePath = "$env:TEMP\chatrr"
 )
 
 # Configuration
@@ -29,6 +30,51 @@ function Get-LocalIP {
     }
 }
 
+# Function to write IP to file
+function Write-IPFile {
+    param(
+        [string]$IP,
+        [int]$Port,
+        [string]$FilePath
+    )
+    
+    try {
+        # Create directory if it doesn't exist
+        $dir = Split-Path -Path $FilePath -Parent
+        if (-not (Test-Path $dir)) {
+            New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        }
+        
+        # Write IP file (filename is IP, content is port)
+        $filePath = Join-Path $FilePath $IP
+        $Port | Out-File -FilePath $filePath -Encoding ASCII -NoNewline
+        
+        return $filePath
+    } catch {
+        Write-Host "Warning: Could not write IP file: $_" -ForegroundColor Yellow
+        return $null
+    }
+}
+
+# Function to cleanup IP files
+function Remove-IPFiles {
+    param([string]$FilePath)
+    
+    try {
+        if (Test-Path $FilePath) {
+            $files = Get-ChildItem -Path $FilePath -File | Where-Object { 
+                # Only remove files that look like IP addresses (contains dots and numbers)
+                $_.Name -match '^\d+\.\d+\.\d+\.\d+$'
+            }
+            foreach ($file in $files) {
+                Remove-Item -Path $file.FullName -Force -ErrorAction SilentlyContinue
+            }
+        }
+    } catch {
+        # Ignore cleanup errors
+    }
+}
+
 # Function to display server startup info
 function Show-ServerInfo {
     Clear-Host
@@ -38,18 +84,43 @@ function Show-ServerInfo {
     Write-Host ""
     Write-Host "Server starting on port: $Port" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "Local IP Address(es):" -ForegroundColor Green
+    Write-Host "----------------------------------------" -ForegroundColor Gray
+    Write-Host "  SERVER IP ADDRESS (share this!):" -ForegroundColor White -BackgroundColor DarkBlue
+    Write-Host "----------------------------------------" -ForegroundColor Gray
     $ips = Get-LocalIP
     if ($ips.Count -eq 0) {
         Write-Host "  Could not detect IP address" -ForegroundColor Red
-        Write-Host "  Use 'ipconfig' to find your IP" -ForegroundColor Gray
+        Write-Host "  Run 'ipconfig' in another terminal to find your IP" -ForegroundColor Gray
     } else {
         foreach ($ip in $ips) {
-            Write-Host "  $ip" -ForegroundColor Green
+            Write-Host "  >>> $ip <<<" -ForegroundColor Yellow -BackgroundColor DarkGreen
         }
     }
+    Write-Host "----------------------------------------" -ForegroundColor Gray
     Write-Host ""
+    
+    # Write IP files
+    $writtenFiles = @()
+    foreach ($ip in $ips) {
+        $filePath = Write-IPFile -IP $ip -Port $Port -FilePath $IPFilePath
+        if ($filePath) {
+            $writtenFiles += $filePath
+        }
+    }
+    
+    if ($writtenFiles.Count -gt 0) {
+        Write-Host "IP address(es) written to:" -ForegroundColor Green
+        foreach ($file in $writtenFiles) {
+            Write-Host "  $file" -ForegroundColor Gray
+        }
+        Write-Host ""
+        Write-Host "Client can auto-detect server IP from this location." -ForegroundColor Cyan
+        Write-Host ""
+    }
+    
+    Write-Host "Share the IP address above with the client PC." -ForegroundColor Cyan
     Write-Host "Waiting for client connection..." -ForegroundColor Yellow
+    Write-Host ""
     Write-Host "Press Ctrl+C to stop the server" -ForegroundColor Gray
     Write-Host ""
 }
@@ -232,6 +303,10 @@ function Start-Server {
         if ($script:listener) {
             try { $script:listener.Stop() } catch {}
         }
+        
+        # Cleanup IP files
+        Remove-IPFiles -FilePath $IPFilePath
+        
         Write-Host ""
         Write-Host "Server stopped." -ForegroundColor Yellow
     }

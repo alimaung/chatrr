@@ -5,13 +5,16 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$ServerIP = "",
     
-    [int]$Port = 12345
+    [int]$Port = 12345,
+    
+    [string]$IPFilePath = "$env:TEMP\chatrr"
 )
 
 # Configuration
 $script:isRunning = $true
 $script:client = $null
 $script:stream = $null
+$script:Port = $Port  # Store port in script scope
 
 # Function to display client startup info
 function Show-ClientInfo {
@@ -22,9 +25,86 @@ function Show-ClientInfo {
     Write-Host ""
 }
 
+# Function to find server IP from files
+function Find-ServerIPFromFiles {
+    param([string]$FilePath)
+    
+    try {
+        if (-not (Test-Path $FilePath)) {
+            return $null
+        }
+        
+        # Look for files named like IP addresses
+        $ipFiles = Get-ChildItem -Path $FilePath -File -ErrorAction SilentlyContinue | 
+            Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } |
+            Sort-Object LastWriteTime -Descending
+        
+        if ($ipFiles.Count -eq 0) {
+            return $null
+        }
+        
+        # Return the most recent IP file
+        $latestFile = $ipFiles[0]
+        $ip = $latestFile.Name
+        $portFromFile = Get-Content -Path $latestFile.FullName -Raw -ErrorAction SilentlyContinue
+        
+        return @{
+            IP = $ip
+            Port = if ($portFromFile) { [int]$portFromFile.Trim() } else { 12345 }
+            FilePath = $latestFile.FullName
+        }
+    } catch {
+        return $null
+    }
+}
+
 # Function to get server IP if not provided
 function Get-ServerIP {
+    # First try to find IP from files
+    $fileInfo = Find-ServerIPFromFiles -FilePath $IPFilePath
+    
+    if ($fileInfo -and -not [string]::IsNullOrWhiteSpace($ServerIP)) {
+        # Use provided IP, but check if port was in file
+        if ($script:Port -eq 12345 -and $fileInfo.Port -ne 12345) {
+            Write-Host "Found port $($fileInfo.Port) from IP file, using it." -ForegroundColor Green
+            $script:Port = $fileInfo.Port
+        }
+        return $ServerIP.Trim()
+    }
+    
+    if ($fileInfo) {
+        Write-Host ""
+        Write-Host "----------------------------------------" -ForegroundColor Gray
+        Write-Host "  AUTO-DETECTED SERVER" -ForegroundColor White -BackgroundColor DarkGreen
+        Write-Host "----------------------------------------" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "Found server IP file: $($fileInfo.IP)" -ForegroundColor Green
+        Write-Host "Port: $($fileInfo.Port)" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "Use this server? (Y/n):" -ForegroundColor Yellow
+        $confirm = Read-Host
+        if ([string]::IsNullOrWhiteSpace($confirm) -or $confirm -match '^[Yy]') {
+            $script:Port = $fileInfo.Port
+            return $fileInfo.IP
+        }
+    }
+    
+    # Fallback to manual entry
     if ([string]::IsNullOrWhiteSpace($ServerIP)) {
+        Write-Host ""
+        Write-Host "----------------------------------------" -ForegroundColor Gray
+        Write-Host "  CONNECTION SETUP" -ForegroundColor White -BackgroundColor DarkBlue
+        Write-Host "----------------------------------------" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "To connect, you need the server's IP address." -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "The server PC should show its IP address when started." -ForegroundColor Yellow
+        Write-Host "It will look like: 192.168.1.XXX or 10.0.0.XXX" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "If you don't know the server IP:" -ForegroundColor Yellow
+        Write-Host "  - Ask the person running the server" -ForegroundColor Gray
+        Write-Host "  - Or they can run 'ipconfig' on the server PC" -ForegroundColor Gray
+        Write-Host ""
         Write-Host "Enter server IP address:" -ForegroundColor Yellow
         $input = Read-Host
         return $input.Trim()
@@ -228,7 +308,7 @@ $null = Register-ObjectEvent -InputObject ([System.Console]) -EventName "CancelK
 # Main execution
 Show-ClientInfo
 
-# Get server IP
+# Get server IP (this may auto-detect from files)
 $serverIP = Get-ServerIP
 
 # Validate IP format (basic check)
@@ -237,16 +317,16 @@ if ([string]::IsNullOrWhiteSpace($serverIP)) {
     exit 1
 }
 
-# Optional: Prompt for port if needed
-if ($Port -eq 12345) {
+# Optional: Prompt for port if needed (only if port is still default and wasn't auto-detected)
+if ($script:Port -eq 12345) {
     Write-Host "Enter port number (default: 12345, press Enter to use default):" -ForegroundColor Yellow
     $portInput = Read-Host
     if (-not [string]::IsNullOrWhiteSpace($portInput)) {
-        if ([int]::TryParse($portInput, [ref]$Port)) {
+        if ([int]::TryParse($portInput, [ref]$script:Port)) {
             # Port parsed successfully
         } else {
             Write-Host "Invalid port, using default 12345" -ForegroundColor Yellow
-            $Port = 12345
+            $script:Port = 12345
         }
     }
 }
@@ -254,7 +334,7 @@ if ($Port -eq 12345) {
 Write-Host ""
 
 # Connect to server
-if (Connect-ToServer -IP $serverIP -Port $Port) {
+if (Connect-ToServer -IP $serverIP -Port $script:Port) {
     Write-Host ""
     Start-Sleep -Seconds 1
     Start-Chat
