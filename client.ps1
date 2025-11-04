@@ -10,6 +10,24 @@ param(
     [string]$IPFilePath = "$env:TEMP\chatrr"
 )
 
+# Load logging module
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+$loggerPath = Join-Path $scriptPath "logger.ps1"
+if (Test-Path $loggerPath) {
+    . $loggerPath
+    Initialize-Logger -LogDirectory "$env:TEMP\chatrr" -LogFileName "client.log"
+    Write-Log "INFO" "Client script started" -Category "Startup" -AdditionalData @{
+        "ServerIP" = $ServerIP
+        "Port" = $Port
+        "IPFilePath" = $IPFilePath
+    }
+} else {
+    # Fallback logging if module not found
+    function Write-Log { param($Level, $Message, $Category, $Exception, $AdditionalData) }
+    function Write-LogException { param($Exception, $Context, $AdditionalData) }
+    function Write-LogConnection { param($Event, $Details, $ConnectionInfo) }
+}
+
 # Configuration
 $script:isRunning = $true
 $script:client = $null
@@ -121,6 +139,10 @@ function Connect-ToServer {
     
     try {
         Write-Host "Connecting to $IP`:$Port..." -ForegroundColor Yellow
+        Write-LogConnection -Event "Attempting connection" -ConnectionInfo @{
+            "ServerIP" = $IP
+            "Port" = $Port
+        }
         
         $script:client = New-Object System.Net.Sockets.TcpClient
         $script:client.ReceiveTimeout = 5000
@@ -130,9 +152,19 @@ function Connect-ToServer {
             $script:stream = $script:client.GetStream()
             $script:stream.ReadTimeout = 500
             Write-Host "Connected successfully!" -ForegroundColor Green
+            Write-LogConnection -Event "Connected successfully" -ConnectionInfo @{
+                "ServerIP" = $IP
+                "Port" = $Port
+                "LocalEndpoint" = $script:client.Client.LocalEndPoint.ToString()
+                "RemoteEndpoint" = $script:client.Client.RemoteEndPoint.ToString()
+            }
             return $true
         } else {
             Write-Host "Failed to connect." -ForegroundColor Red
+            Write-Log "ERROR" "Connection failed - client not connected" -Category "Connection" -AdditionalData @{
+                "ServerIP" = $IP
+                "Port" = $Port
+            }
             return $false
         }
     } catch {
@@ -143,6 +175,12 @@ function Connect-ToServer {
         Write-Host "  - Wrong IP address" -ForegroundColor Gray
         Write-Host "  - Wrong port number" -ForegroundColor Gray
         Write-Host "  - Firewall blocking connection" -ForegroundColor Gray
+        
+        Write-LogException -Exception $_ -Context "Connect-ToServer" -AdditionalData @{
+            "ServerIP" = $IP
+            "Port" = $Port
+            "ErrorType" = $_.GetType().Name
+        }
         return $false
     }
 }
@@ -179,73 +217,100 @@ function Start-Chat {
     $writer = New-Object System.IO.StreamWriter($script:stream, [System.Text.Encoding]::UTF8)
     $writer.AutoFlush = $true
     
+    Write-Log "INFO" "Entering main chat loop" -Category "Chat"
+    
     # Main chat loop - simplified polling approach
     while ($script:client.Connected -and $script:isRunning) {
-        # Check if data is available (non-blocking check)
-        if ($script:stream.DataAvailable) {
-            try {
-                $line = $reader.ReadLine()
-                if ($line) {
-                    if ($line -match "^(/quit|/exit)$") {
-                        Write-Host "Server disconnected." -ForegroundColor Yellow
-                        $script:isRunning = $false
+        try {
+            # Check if data is available (non-blocking check)
+            if ($script:stream.DataAvailable) {
+                try {
+                    $line = $reader.ReadLine()
+                    if ($line) {
+                        if ($line -match "^(/quit|/exit)$") {
+                            Write-Host "Server disconnected." -ForegroundColor Yellow
+                            Write-LogConnection -Event "Server sent disconnect" -Details $line
+                            $script:isRunning = $false
+                            break
+                        }
+                        Write-Host "Them: $line" -ForegroundColor Yellow
+                        Write-Log "DEBUG" "Received message" -Category "Chat" -AdditionalData @{ "Message" = $line }
+                    }
+                } catch {
+                    Write-LogException -Exception $_ -Context "Reading incoming message" -AdditionalData @{
+                        "StreamAvailable" = $script:stream.DataAvailable
+                        "ClientConnected" = $script:client.Connected
+                    }
+                    break
+                }
+            }
+            
+            # Check for user input (non-blocking check)
+            if ([Console]::KeyAvailable) {
+                try {
+                    $input = Read-Host
+                    if ($input.Trim() -eq "") {
+                        continue
+                    }
+                    
+                    # Check for quit command
+                    if ($input.Trim() -match "^(/quit|/exit)$") {
+                        try {
+                            $writer.WriteLine("/quit")
+                            Write-Host "Disconnecting..." -ForegroundColor Yellow
+                            Write-LogConnection -Event "Client disconnecting" -Details $input
+                        } catch {
+                            Write-LogException -Exception $_ -Context "Sending quit message"
+                        }
                         break
                     }
-                    Write-Host "Them: $line" -ForegroundColor Yellow
-                }
-            } catch {
-                # Connection lost
-                break
-            }
-        }
-        
-        # Check for user input (non-blocking check)
-        if ([Console]::KeyAvailable) {
-            try {
-                $input = Read-Host
-                if ($input.Trim() -eq "") {
-                    continue
-                }
-                
-                # Check for quit command
-                if ($input.Trim() -match "^(/quit|/exit)$") {
+                    
+                    # Send message
                     try {
-                        $writer.WriteLine("/quit")
-                        Write-Host "Disconnecting..." -ForegroundColor Yellow
+                        $writer.WriteLine($input)
+                        Write-Host "You: $input" -ForegroundColor Cyan
+                        Write-Log "DEBUG" "Sent message" -Category "Chat" -AdditionalData @{ "Message" = $input }
                     } catch {
-                        # Ignore write errors on disconnect
+                        Write-Host "Failed to send message. Connection lost?" -ForegroundColor Red
+                        Write-LogException -Exception $_ -Context "Sending message" -AdditionalData @{
+                            "Message" = $input
+                            "ClientConnected" = $script:client.Connected
+                        }
+                        break
                     }
-                    break
-                }
-                
-                # Send message
-                try {
-                    $writer.WriteLine($input)
-                    Write-Host "You: $input" -ForegroundColor Cyan
                 } catch {
-                    Write-Host "Failed to send message. Connection lost?" -ForegroundColor Red
+                    Write-LogException -Exception $_ -Context "Reading user input"
                     break
                 }
-            } catch {
-                # Input error (Ctrl+C handled separately)
+            } else {
+                # No input ready, brief pause to allow receive processing
+                Start-Sleep -Milliseconds 50
+            }
+            
+            # Check connection status
+            if (-not $script:client.Connected) {
+                Write-Log "WARN" "Client connection lost detected in loop" -Category "Connection"
                 break
             }
-        } else {
-            # No input ready, brief pause to allow receive processing
-            Start-Sleep -Milliseconds 50
-        }
-        
-        # Check connection status
-        if (-not $script:client.Connected) {
+        } catch {
+            Write-LogException -Exception $_ -Context "Main chat loop" -AdditionalData @{
+                "ClientConnected" = $script:client.Connected
+                "IsRunning" = $script:isRunning
+            }
             break
         }
     }
+    
+    Write-Log "INFO" "Exiting main chat loop" -Category "Chat"
     
     # Cleanup
     try {
         $reader.Close()
         $writer.Close()
-    } catch {}
+        Write-Log "DEBUG" "Stream reader/writer closed" -Category "Cleanup"
+    } catch {
+        Write-LogException -Exception $_ -Context "Closing streams"
+    }
     Handle-Disconnect
 }
 
@@ -254,46 +319,67 @@ function Start-Chat {
 $null = Register-ObjectEvent -InputObject ([System.Console]) -EventName "CancelKeyPress" -Action {
     $script:isRunning = $false
     Write-Host "`nDisconnecting..." -ForegroundColor Yellow
+    Write-Log "INFO" "Ctrl+C pressed - disconnecting" -Category "UserAction"
 }
 
-# Main execution
-Show-ClientInfo
+# Main execution with error handling
+try {
+    Show-ClientInfo
 
-# Get server IP (this may auto-detect from files)
-$serverIP = Get-ServerIP
+    # Get server IP (this may auto-detect from files)
+    $serverIP = Get-ServerIP
 
-# Validate IP format (basic check)
-if ([string]::IsNullOrWhiteSpace($serverIP)) {
-    Write-Host "Server IP address is required." -ForegroundColor Red
-    exit 1
-}
+    # Validate IP format (basic check)
+    if ([string]::IsNullOrWhiteSpace($serverIP)) {
+        Write-Host "Server IP address is required." -ForegroundColor Red
+        Write-Log "ERROR" "Server IP address is empty" -Category "Validation"
+        exit 1
+    }
 
-# Optional: Prompt for port if needed (only if port is still default and wasn't auto-detected)
-if ($script:Port -eq 12345) {
-    Write-Host "Enter port number (default: 12345, press Enter to use default):" -ForegroundColor Yellow
-    $portInput = Read-Host
-    if (-not [string]::IsNullOrWhiteSpace($portInput)) {
-        if ([int]::TryParse($portInput, [ref]$script:Port)) {
-            # Port parsed successfully
-        } else {
-            Write-Host "Invalid port, using default 12345" -ForegroundColor Yellow
-            $script:Port = 12345
+    # Optional: Prompt for port if needed (only if port is still default and wasn't auto-detected)
+    if ($script:Port -eq 12345) {
+        Write-Host "Enter port number (default: 12345, press Enter to use default):" -ForegroundColor Yellow
+        $portInput = Read-Host
+        if (-not [string]::IsNullOrWhiteSpace($portInput)) {
+            if ([int]::TryParse($portInput, [ref]$script:Port)) {
+                Write-Log "INFO" "Port changed by user" -Category "Configuration" -AdditionalData @{ "Port" = $script:Port }
+            } else {
+                Write-Host "Invalid port, using default 12345" -ForegroundColor Yellow
+                Write-Log "WARN" "Invalid port input, using default" -Category "Configuration" -AdditionalData @{ "Input" = $portInput }
+                $script:Port = 12345
+            }
         }
     }
-}
 
-Write-Host ""
+    Write-Host ""
 
-# Connect to server
-if (Connect-ToServer -IP $serverIP -Port $script:Port) {
+    # Connect to server
+    if (Connect-ToServer -IP $serverIP -Port $script:Port) {
+        Write-Host ""
+        Start-Sleep -Seconds 1
+        Start-Chat
+    } else {
+        Write-Host ""
+        Write-Host "Failed to connect. Exiting." -ForegroundColor Red
+        Write-Log "ERROR" "Failed to connect to server - exiting" -Category "Connection"
+        exit 1
+    }
+
     Write-Host ""
-    Start-Sleep -Seconds 1
-    Start-Chat
-} else {
+    Write-Host "Goodbye!" -ForegroundColor Cyan
+    Write-Log "INFO" "Client exiting normally" -Category "Shutdown"
+} catch {
     Write-Host ""
-    Write-Host "Failed to connect. Exiting." -ForegroundColor Red
+    Write-Host "FATAL ERROR: Client crashed!" -ForegroundColor Red
+    Write-Host "Error: $_" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Log file location: $(Get-LogFilePath)" -ForegroundColor Yellow
+    
+    Write-LogException -Exception $_ -Context "Main execution" -AdditionalData @{
+        "ServerIP" = $serverIP
+        "Port" = $script:Port
+    }
+    Write-Log "FATAL" "Client crashed and is exiting" -Category "Crash"
+    
     exit 1
 }
-
-Write-Host ""
-Write-Host "Goodbye!" -ForegroundColor Cyan
