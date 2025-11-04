@@ -2,14 +2,14 @@
 # Provides logging functionality for debugging crashes and errors
 
 # Configuration
-$script:LogPath = "$env:TEMP\chatrr"
+$script:LogPath = "Q:\DocumentManagement\Servicelines\Allgemein\ABM\chatrr"
 $script:LogFile = "chat.log"
 $script:MaxLogSize = 1MB  # 1 MB max log size
 
 # Function to initialize logging
 function Initialize-Logger {
     param(
-        [string]$LogDirectory = "$env:TEMP\chatrr",
+        [string]$LogDirectory = "Q:\DocumentManagement\Servicelines\Allgemein\ABM\chatrr",
         [string]$LogFileName = "chat.log"
     )
     

@@ -22,13 +22,13 @@ Here are simple ways to implement a terminal chat between two Windows PCs on the
 ## 1. **TCP Sockets (recommended)**
 
 **How it works:**
-- One PC runs a server (listener) on a port (e.g., 12345)
+- One PC runs a server (listener) on a port (e.g., 8008)
 - The other PC connects as a client to the server’s local IP address
 - Both send/receive messages over the connection
 
 **Key steps:**
 - Find the server’s local IP (e.g., `ipconfig` → look for IPv4, often 192.168.x.x)
-- Server listens on a port (e.g., 12345)
+- Server listens on a port (e.g., 8008)
 - Client connects using the server’s IP and port
 - Use bidirectional send/receive loops
 
@@ -183,7 +183,7 @@ Lines added: 495, lines removed: 1
 + &#96;&#96;&#96;
 + ┌─────────────────┐         TCP Socket          ┌─────────────────┐
 + │   PC 1 (Server) │ ◄─────────────────────────► │   PC 2 (Client) │
-+ │                 │         Port: 12345          │                 │
++ │                 │         Port: 8008          │                 │
 + │  ┌───────────┐  │                              │  ┌───────────┐  │
 + │  │  Listener │  │                              │  │  Connector│  │
 + │  └─────┬─────┘  │                              │  └─────┬─────┘  │
@@ -223,7 +223,7 @@ Lines added: 495, lines removed: 1
 + 
 + ### 3.1 Network Configuration
 + - **Protocol**: TCP (reliable, ordered delivery)
-+ - **Default Port**: 12345 (configurable)
++ - **Default Port**: 8008 (configurable)
 + - **Binding Address**: 0.0.0.0 (all network interfaces)
 + - **Connection Type**: Persistent (keep-alive until disconnect)
 + - **Encoding**: UTF-8 (Unicode support)
@@ -366,7 +366,7 @@ Lines added: 495, lines removed: 1
 + #### &#96;Start-Server&#96;
 + - **Purpose**: Initialize and start TCP listener
 + - **Parameters**: 
-+   - &#96;Port&#96; (int, default: 12345)
++   - &#96;Port&#96; (int, default: 8008)
 +   - &#96;IPAddress&#96; (string, default: &quot;0.0.0.0&quot;)
 + - **Returns**: TcpListener object
 + - **Side Effects**: Binds to port, starts listening
@@ -401,7 +401,7 @@ Lines added: 495, lines removed: 1
 + - **Purpose**: Establish connection to server
 + - **Parameters**: 
 +   - &#96;ServerIP&#96; (string)
-+   - &#96;Port&#96; (int, default: 12345)
++   - &#96;Port&#96; (int, default: 8008)
 + - **Returns**: TcpClient object or null on failure
 + - **Side Effects**: Attempts TCP connection
 + 
@@ -543,7 +543,7 @@ Lines added: 495, lines removed: 1
 + ## 11. CONFIGURATION OPTIONS
 + 
 + ### 11.1 Configurable Parameters
-+ - **Port**: Default 12345, configurable via parameter
++ - **Port**: Default 8008, configurable via parameter
 + - **Encoding**: UTF-8 (hardcoded for MVP)
 + - **Buffer Size**: 4096 bytes (configurable)
 + - **Timeout**: 30 seconds (configurable)
@@ -568,7 +568,7 @@ Lines added: 495, lines removed: 1
 + 
 + ### 12.3 Network Requirements
 + - Both PCs on same local network
-+ - Firewall may need to allow TCP port 12345
++ - Firewall may need to allow TCP port 8008
 + - PCs must be able to ping each other
 + 
 + ---
@@ -731,7 +731,7 @@ Lines added: 512, lines removed: 1
 + # TCP Socket Server for Local Network Chat
 + 
 + param(
-+     [int]$Port = 12345
++     [int]$Port = 8008
 + )
 + 
 + # Configuration
@@ -1264,7 +1264,7 @@ Lines added: 250, lines removed: 1
 +     [Parameter(Mandatory=$false)]
 +     [string]$ServerIP = &quot;&quot;,
 +     
-+     [int]$Port = 12345
++     [int]$Port = 8008
 + )
 + 
 + # Configuration
@@ -1478,15 +1478,15 @@ Lines added: 250, lines removed: 1
 + }
 + 
 + # Optional: Prompt for port if needed
-+ if ($Port -eq 12345) {
-+     Write-Host &quot;Enter port number (default: 12345):&quot; -ForegroundColor Yellow
++ if ($Port -eq 8008) {
++     Write-Host &quot;Enter port number (default: 8008):&quot; -ForegroundColor Yellow
 +     $portInput = Read-Host
 +     if (-not [string]::IsNullOrWhiteSpace($portInput)) {
 +         if ([int]::TryParse($portInput, [ref]$Port)) {
 +             # Port parsed successfully
 +         } else {
-+             Write-Host &quot;Invalid port, using default 12345&quot; -ForegroundColor Yellow
-+             $Port = 12345
++             Write-Host &quot;Invalid port, using default 8008&quot; -ForegroundColor Yellow
++             $Port = 8008
 +         }
 +     }
 + }
@@ -3459,9 +3459,9 @@ Lines added: 1, lines removed: 1
 ```diff
 @@ -275,5 +240,5 @@
   # Optional: Prompt for port if needed
-  if ($Port -eq 12345) {
--     Write-Host &quot;Enter port number (default: 12345):&quot; -ForegroundColor Yellow
-+     Write-Host &quot;Enter port number (default: 12345, press Enter to use default):&quot; -ForegroundColor Yellow
+  if ($Port -eq 8008) {
+-     Write-Host &quot;Enter port number (default: 8008):&quot; -ForegroundColor Yellow
++     Write-Host &quot;Enter port number (default: 8008, press Enter to use default):&quot; -ForegroundColor Yellow
       $portInput = Read-Host
       if (-not [string]::IsNullOrWhiteSpace($portInput)) {
 ```
@@ -3569,7 +3569,7 @@ Lines added: 193, lines removed: 1
 + 
 + The client will:
 + - Prompt for server IP (if not provided)
-+ - Prompt for port (if not provided, defaults to 12345)
++ - Prompt for port (if not provided, defaults to 8008)
 + - Connect to the server
 + 
 + ### 4. Start Chatting!
@@ -3602,12 +3602,12 @@ Lines added: 193, lines removed: 1
 + 
 + 1. **Check server is running**: Make sure server.ps1 is running on the other PC
 + 2. **Verify IP address**: Double-check the server IP address
-+ 3. **Check port number**: Ensure both are using the same port (default: 12345)
++ 3. **Check port number**: Ensure both are using the same port (default: 8008)
 + 4. **Firewall**: Windows Firewall may block the connection
 +    - Allow PowerShell through firewall, or
 +    - Allow the specific port through firewall:
 +      &#96;&#96;&#96;powershell
-+      New-NetFirewallRule -DisplayName &quot;Terminal Chat&quot; -Direction Inbound -LocalPort 12345 -Protocol TCP -Action Allow
++      New-NetFirewallRule -DisplayName &quot;Terminal Chat&quot; -Direction Inbound -LocalPort 8008 -Protocol TCP -Action Allow
 +      &#96;&#96;&#96;
 + 
 + ### Port Already in Use
@@ -3658,7 +3658,7 @@ Lines added: 193, lines removed: 1
 + ## Technical Details
 + 
 + - **Protocol**: TCP/IP
-+ - **Default Port**: 12345
++ - **Default Port**: 8008
 + - **Encoding**: UTF-8
 + - **Max Message Length**: ~4096 characters
 + - **Connection**: Persistent until disconnect
@@ -3742,7 +3742,7 @@ Lint results
 ## Created Files
 
 1. **`server.ps1`** — Server script
-   - TCP listener on configurable port (default: 12345)
+   - TCP listener on configurable port (default: 8008)
    - Shows local IP addresses
    - Accepts one client connection
    - Handles bidirectional messaging with runspaces
@@ -3958,7 +3958,7 @@ Lines added: 7, lines removed: 1
 + The client will:
 + - Show instructions about getting the server IP
 + - Prompt for server IP address (enter the IP shared by the server)
-+ - Prompt for port (default: 12345, press Enter to use default)
++ - Prompt for port (default: 8008, press Enter to use default)
 + - Connect to the server
 + 
 + **Alternative:** You can specify the server IP directly:
@@ -3976,7 +3976,7 @@ Lines added: undefined, lines removed: 5
 - 
 - The client will:
 - - Prompt for server IP (if not provided)
-- - Prompt for port (if not provided, defaults to 12345)
+- - Prompt for port (if not provided, defaults to 8008)
 - - Connect to the server
   
   ### 4. Start Chatting!
@@ -4179,8 +4179,8 @@ Lines added: 2, lines removed: 1
 @@ -3,5 +3,6 @@
   
   param(
--     [int]$Port = 12345
-+     [int]$Port = 12345,
+-     [int]$Port = 8008
++     [int]$Port = 8008,
 +     [string]$IPFilePath = &quot;$env:TEMP\chatrr&quot;
   )
   
@@ -4325,8 +4325,8 @@ Lines added: 3, lines removed: 1
 @@ -6,5 +6,7 @@
       [string]$ServerIP = &quot;&quot;,
       
--     [int]$Port = 12345
-+     [int]$Port = 12345,
+-     [int]$Port = 8008
++     [int]$Port = 8008,
 +     
 +     [string]$IPFilePath = &quot;$env:TEMP\chatrr&quot;
   )
@@ -4376,7 +4376,7 @@ Lines added: 63, lines removed: undefined
 +         
 +         return @{
 +             IP = $ip
-+             Port = if ($portFromFile) { [int]$portFromFile.Trim() } else { 12345 }
++             Port = if ($portFromFile) { [int]$portFromFile.Trim() } else { 8008 }
 +             FilePath = $latestFile.FullName
 +         }
 +     } catch {
@@ -4391,7 +4391,7 @@ Lines added: 63, lines removed: undefined
 +     
 +     if ($fileInfo -and -not [string]::IsNullOrWhiteSpace($ServerIP)) {
 +         # Use provided IP, but check if port was in file
-+         if ($Port -eq 12345 -and $fileInfo.Port -ne 12345) {
++         if ($Port -eq 8008 -and $fileInfo.Port -ne 8008) {
 +             Write-Host &quot;Found port $($fileInfo.Port) from IP file, using it.&quot; -ForegroundColor Green
 +             $script:Port = $fileInfo.Port
 +         }
@@ -4476,8 +4476,8 @@ Lines added: 1, lines removed: 1
 @@ -66,5 +66,5 @@
       if ($fileInfo -and -not [string]::IsNullOrWhiteSpace($ServerIP)) {
           # Use provided IP, but check if port was in file
--         if ($Port -eq 12345 -and $fileInfo.Port -ne 12345) {
-+         if ($script:Port -eq 12345 -and $fileInfo.Port -ne 12345) {
+-         if ($Port -eq 8008 -and $fileInfo.Port -ne 8008) {
++         if ($script:Port -eq 8008 -and $fileInfo.Port -ne 8008) {
               Write-Host &quot;Found port $($fileInfo.Port) from IP file, using it.&quot; -ForegroundColor Green
               $script:Port = $fileInfo.Port
 ```
@@ -4500,19 +4500,19 @@ Lines added: 4, lines removed: 4
   }
   
 - # Optional: Prompt for port if needed
-- if ($Port -eq 12345) {
+- if ($Port -eq 8008) {
 + # Optional: Prompt for port if needed (only if not auto-detected)
-+ if ($script:Port -eq 12345 -and -not $fileInfo) {
-      Write-Host &quot;Enter port number (default: 12345, press Enter to use default):&quot; -ForegroundColor Yellow
++ if ($script:Port -eq 8008 -and -not $fileInfo) {
+      Write-Host &quot;Enter port number (default: 8008, press Enter to use default):&quot; -ForegroundColor Yellow
       $portInput = Read-Host
       if (-not [string]::IsNullOrWhiteSpace($portInput)) {
 -         if ([int]::TryParse($portInput, [ref]$Port)) {
 +         if ([int]::TryParse($portInput, [ref]$script:Port)) {
               # Port parsed successfully
           } else {
-              Write-Host &quot;Invalid port, using default 12345&quot; -ForegroundColor Yellow
--             $Port = 12345
-+             $script:Port = 12345
+              Write-Host &quot;Invalid port, using default 8008&quot; -ForegroundColor Yellow
+-             $Port = 8008
++             $script:Port = 8008
           }
       }
 ```
@@ -4596,10 +4596,10 @@ Lines added: 2, lines removed: 2
   }
   
 - # Optional: Prompt for port if needed (only if not auto-detected)
-- if ($script:Port -eq 12345 -and -not $fileInfo) {
+- if ($script:Port -eq 8008 -and -not $fileInfo) {
 + # Optional: Prompt for port if needed (only if port is still default and wasn&#39;t auto-detected)
-+ if ($script:Port -eq 12345) {
-      Write-Host &quot;Enter port number (default: 12345, press Enter to use default):&quot; -ForegroundColor Yellow
++ if ($script:Port -eq 8008) {
+      Write-Host &quot;Enter port number (default: 8008, press Enter to use default):&quot; -ForegroundColor Yellow
       $portInput = Read-Host
 ```
 
@@ -4699,7 +4699,7 @@ Lines added: 7, lines removed: 5
   The client will:
 - - Show instructions about getting the server IP
 - - Prompt for server IP address (enter the IP shared by the server)
-- - Prompt for port (default: 12345, press Enter to use default)
+- - Prompt for port (default: 8008, press Enter to use default)
 - - Connect to the server
 + - **Automatically scan for server IP files** in &#96;%TEMP%\chatrr&#96; (or custom path)
 + - If found, prompt: &quot;Found server IP file: 192.168.1.100, Use this server? (Y/n)&quot;
@@ -4763,7 +4763,7 @@ Lines added: 30, lines removed: undefined
 + 
 + **File Format:**
 + - **Filename:** IP address (e.g., &#96;192.168.1.100&#96;)
-+ - **Content:** Port number (e.g., &#96;12345&#96;)
++ - **Content:** Port number (e.g., &#96;8008&#96;)
 + 
 + ### Setting Up Shared Path
 + 
@@ -4833,7 +4833,7 @@ Implemented automatic IP sharing via files.
 1. **New parameter**: `-IPFilePath` (default: `$env:TEMP\chatrr`)
 2. **Writes IP files**: Creates files named after each IP address (no extension)
    - Filename: `192.168.1.100` (the IP)
-   - Content: `12345` (the port number)
+   - Content: `8008` (the port number)
 3. **Cleanup**: Deletes IP files when the server stops
 
 ## Client changes
@@ -6577,29 +6577,29 @@ Lines added: 56, lines removed: 35
 +     }
   
 - # Optional: Prompt for port if needed (only if port is still default and wasn&#39;t auto-detected)
-- if ($script:Port -eq 12345) {
--     Write-Host &quot;Enter port number (default: 12345, press Enter to use default):&quot; -ForegroundColor Yellow
+- if ($script:Port -eq 8008) {
+-     Write-Host &quot;Enter port number (default: 8008, press Enter to use default):&quot; -ForegroundColor Yellow
 -     $portInput = Read-Host
 -     if (-not [string]::IsNullOrWhiteSpace($portInput)) {
 -         if ([int]::TryParse($portInput, [ref]$script:Port)) {
 -             # Port parsed successfully
 -         } else {
--             Write-Host &quot;Invalid port, using default 12345&quot; -ForegroundColor Yellow
--             $script:Port = 12345
+-             Write-Host &quot;Invalid port, using default 8008&quot; -ForegroundColor Yellow
+-             $script:Port = 8008
 -         }
 -     }
 - }
 +     # Optional: Prompt for port if needed (only if port is still default and wasn&#39;t auto-detected)
-+     if ($script:Port -eq 12345) {
-+         Write-Host &quot;Enter port number (default: 12345, press Enter to use default):&quot; -ForegroundColor Yellow
++     if ($script:Port -eq 8008) {
++         Write-Host &quot;Enter port number (default: 8008, press Enter to use default):&quot; -ForegroundColor Yellow
 +         $portInput = Read-Host
 +         if (-not [string]::IsNullOrWhiteSpace($portInput)) {
 +             if ([int]::TryParse($portInput, [ref]$script:Port)) {
 +                 Write-Log &quot;INFO&quot; &quot;Port changed by user&quot; -Category &quot;Configuration&quot; -AdditionalData @{ &quot;Port&quot; = $script:Port }
 +             } else {
-+                 Write-Host &quot;Invalid port, using default 12345&quot; -ForegroundColor Yellow
++                 Write-Host &quot;Invalid port, using default 8008&quot; -ForegroundColor Yellow
 +                 Write-Log &quot;WARN&quot; &quot;Invalid port input, using default&quot; -Category &quot;Configuration&quot; -AdditionalData @{ &quot;Input&quot; = $portInput }
-+                 $script:Port = 12345
++                 $script:Port = 8008
 +             }
 +         }
 +     }

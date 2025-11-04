@@ -2,8 +2,8 @@
 # TCP Socket Server for Local Network Chat
 
 param(
-    [int]$Port = 12345,
-    [string]$IPFilePath = "$env:TEMP\chatrr"
+    [int]$Port = 8008,
+    [string]$IPFilePath = "Q:\DocumentManagement\Servicelines\Allgemein\ABM\chatrr"
 )
 
 # Load logging module

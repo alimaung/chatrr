@@ -5,9 +5,9 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$ServerIP = "",
     
-    [int]$Port = 12345,
+    [int]$Port = 8008,
     
-    [string]$IPFilePath = "$env:TEMP\chatrr"
+    [string]$IPFilePath = "Q:\DocumentManagement\Servicelines\Allgemein\ABM\chatrr"
 )
 
 # Load logging module
@@ -15,7 +15,7 @@ $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $loggerPath = Join-Path $scriptPath "logger.ps1"
 if (Test-Path $loggerPath) {
     . $loggerPath
-    Initialize-Logger -LogDirectory "$env:TEMP\chatrr" -LogFileName "client.log"
+    Initialize-Logger -LogDirectory "Q:\DocumentManagement\Servicelines\Allgemein\ABM\chatrr" -LogFileName "client.log"
     Write-Log "INFO" "Client script started" -Category "Startup" -AdditionalData @{
         "ServerIP" = $ServerIP
         "Port" = $Port
@@ -68,7 +68,7 @@ function Find-ServerIPFromFiles {
         
         return @{
             IP = $ip
-            Port = if ($portFromFile) { [int]$portFromFile.Trim() } else { 12345 }
+            Port = if ($portFromFile) { [int]$portFromFile.Trim() } else { 8008 }
             FilePath = $latestFile.FullName
         }
     } catch {
@@ -83,7 +83,7 @@ function Get-ServerIP {
     
     if ($fileInfo -and -not [string]::IsNullOrWhiteSpace($ServerIP)) {
         # Use provided IP, but check if port was in file
-        if ($script:Port -eq 12345 -and $fileInfo.Port -ne 12345) {
+        if ($script:Port -eq 8008 -and $fileInfo.Port -ne 8008) {
             Write-Host "Found port $($fileInfo.Port) from IP file, using it." -ForegroundColor Green
             $script:Port = $fileInfo.Port
         }
@@ -337,16 +337,16 @@ try {
     }
 
     # Optional: Prompt for port if needed (only if port is still default and wasn't auto-detected)
-    if ($script:Port -eq 12345) {
-        Write-Host "Enter port number (default: 12345, press Enter to use default):" -ForegroundColor Yellow
+    if ($script:Port -eq 8008) {
+        Write-Host "Enter port number (default: 8008, press Enter to use default):" -ForegroundColor Yellow
         $portInput = Read-Host
         if (-not [string]::IsNullOrWhiteSpace($portInput)) {
             if ([int]::TryParse($portInput, [ref]$script:Port)) {
                 Write-Log "INFO" "Port changed by user" -Category "Configuration" -AdditionalData @{ "Port" = $script:Port }
             } else {
-                Write-Host "Invalid port, using default 12345" -ForegroundColor Yellow
+                Write-Host "Invalid port, using default 8008" -ForegroundColor Yellow
                 Write-Log "WARN" "Invalid port input, using default" -Category "Configuration" -AdditionalData @{ "Input" = $portInput }
-                $script:Port = 12345
+                $script:Port = 8008
             }
         }
     }

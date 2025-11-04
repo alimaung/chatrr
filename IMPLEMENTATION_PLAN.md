@@ -30,7 +30,7 @@ Create a simple bidirectional terminal chat application that allows two Windows 
 ```
 ┌─────────────────┐         TCP Socket          ┌─────────────────┐
 │   PC 1 (Server) │ ◄─────────────────────────► │   PC 2 (Client) │
-│                 │         Port: 12345          │                 │
+│                 │         Port: 8008          │                 │
 │  ┌───────────┐  │                              │  ┌───────────┐  │
 │  │  Listener │  │                              │  │  Connector│  │
 │  └─────┬─────┘  │                              │  └─────┬─────┘  │
@@ -70,7 +70,7 @@ Create a simple bidirectional terminal chat application that allows two Windows 
 
 ### 3.1 Network Configuration
 - **Protocol**: TCP (reliable, ordered delivery)
-- **Default Port**: 12345 (configurable)
+- **Default Port**: 8008 (configurable)
 - **Binding Address**: 0.0.0.0 (all network interfaces)
 - **Connection Type**: Persistent (keep-alive until disconnect)
 - **Encoding**: UTF-8 (Unicode support)
@@ -213,7 +213,7 @@ chatrr/
 #### `Start-Server`
 - **Purpose**: Initialize and start TCP listener
 - **Parameters**: 
-  - `Port` (int, default: 12345)
+  - `Port` (int, default: 8008)
   - `IPAddress` (string, default: "0.0.0.0")
 - **Returns**: TcpListener object
 - **Side Effects**: Binds to port, starts listening
@@ -248,7 +248,7 @@ chatrr/
 - **Purpose**: Establish connection to server
 - **Parameters**: 
   - `ServerIP` (string)
-  - `Port` (int, default: 12345)
+  - `Port` (int, default: 8008)
 - **Returns**: TcpClient object or null on failure
 - **Side Effects**: Attempts TCP connection
 
@@ -390,7 +390,7 @@ chatrr/
 ## 11. CONFIGURATION OPTIONS
 
 ### 11.1 Configurable Parameters
-- **Port**: Default 12345, configurable via parameter
+- **Port**: Default 8008, configurable via parameter
 - **Encoding**: UTF-8 (hardcoded for MVP)
 - **Buffer Size**: 4096 bytes (configurable)
 - **Timeout**: 30 seconds (configurable)
@@ -415,7 +415,7 @@ chatrr/
 
 ### 12.3 Network Requirements
 - Both PCs on same local network
-- Firewall may need to allow TCP port 12345
+- Firewall may need to allow TCP port 8008
 - PCs must be able to ping each other
 
 ---

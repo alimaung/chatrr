@@ -1,0 +1,98 @@
+2025-11-04 14:56:20.348 [INFO] [System] Logger initialized
+
+2025-11-04 14:56:20.702 [INFO] [Startup] Client script started
+  Additional Data:
+    Port = 8008
+    ServerIP = 
+    IPFilePath = Q:\DocumentManagement\Servicelines\Allgemein\ABM\chatrr
+
+2025-11-04 14:56:24.220 [INFO] [Connection] Connection: Attempting connection
+  Additional Data:
+    Port = 8008
+    ServerIP = 10.158.112.162
+    Event = Attempting connection
+
+2025-11-04 14:56:24.627 [INFO] [Connection] Connection: Connected successfully
+  Additional Data:
+    Port = 8008
+    RemoteEndpoint = 10.158.112.162:8008
+    LocalEndpoint = 10.158.112.162:53077
+    Event = Connected successfully
+    ServerIP = 10.158.112.162
+
+2025-11-04 14:56:26.035 [INFO] [Chat] Entering main chat loop
+
+2025-11-04 14:59:30.948 [INFO] [System] Logger initialized
+
+2025-11-04 14:59:38.951 [INFO] [Connection] Connection: Attempting connection
+  Additional Data:
+    Port = 8008
+    ServerIP = 10.158.112.162
+    Event = Attempting connection
+
+2025-11-04 14:59:39.379 [INFO] [Connection] Connection: Connected successfully
+  Additional Data:
+    Port = 8008
+    RemoteEndpoint = 10.158.112.162:8008
+    LocalEndpoint = 10.158.112.162:53129
+    Event = Connected successfully
+    ServerIP = 10.158.112.162
+
+2025-11-04 14:59:40.834 [INFO] [Chat] Entering main chat loop
+
+2025-11-04 15:01:17.008 [INFO] [System] Logger initialized
+
+2025-11-04 15:01:17.361 [INFO] [Startup] Client script started
+  Additional Data:
+    Port = 8008
+    ServerIP = 
+    IPFilePath = Q:\DocumentManagement\Servicelines\Allgemein\ABM\chatrr
+
+2025-11-04 15:01:23.244 [INFO] [Connection] Connection: Attempting connection
+  Additional Data:
+    Port = 8008
+    ServerIP = 10.158.112.162
+    Event = Attempting connection
+
+2025-11-04 15:01:23.696 [INFO] [Connection] Connection: Connected successfully
+  Additional Data:
+    Port = 8008
+    RemoteEndpoint = 10.158.112.162:8008
+    LocalEndpoint = 10.158.112.162:53152
+    Event = Connected successfully
+    ServerIP = 10.158.112.162
+
+2025-11-04 15:01:25.100 [INFO] [Chat] Entering main chat loop
+
+2025-11-04 15:01:25.536 [DEBUG] [Chat] Received message
+  Additional Data:
+    Message = asdasd
+
+2025-11-04 15:01:31.956 [DEBUG] [Chat] Sent message
+  Additional Data:
+    Message = asd
+
+2025-11-04 15:01:48.310 [INFO] [System] Logger initialized
+
+2025-11-04 15:01:48.667 [INFO] [Startup] Client script started
+  Additional Data:
+    Port = 8008
+    ServerIP = 
+    IPFilePath = Q:\DocumentManagement\Servicelines\Allgemein\ABM\chatrr
+
+2025-11-04 15:01:53.118 [INFO] [Connection] Connection: Attempting connection
+  Additional Data:
+    Port = 8008
+    ServerIP = 10.158.112.162
+    Event = Attempting connection
+
+2025-11-04 15:01:53.570 [INFO] [Connection] Connection: Connected successfully
+  Additional Data:
+    Port = 8008
+    RemoteEndpoint = 10.158.112.162:8008
+    LocalEndpoint = 10.158.112.162:53155
+    Event = Connected successfully
+    ServerIP = 10.158.112.162
+
+2025-11-04 15:01:54.998 [INFO] [Chat] Entering main chat loop
+

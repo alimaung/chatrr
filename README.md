@@ -122,7 +122,7 @@ The server automatically creates files with IP addresses as filenames (no extens
 
 **File Format:**
 - **Filename:** IP address (e.g., `192.168.1.100`)
-- **Content:** Port number (e.g., `12345`)
+- **Content:** Port number (e.g., `8008`)
 
 ### Setting Up Shared Path
 
@@ -185,12 +185,12 @@ The client will prompt you for the server IP. You need to get this from the pers
 
 1. **Check server is running**: Make sure server.ps1 is running on the other PC
 2. **Verify IP address**: Double-check the server IP address
-3. **Check port number**: Ensure both are using the same port (default: 12345)
+3. **Check port number**: Ensure both are using the same port (default: 8008)
 4. **Firewall**: Windows Firewall may block the connection
    - Allow PowerShell through firewall, or
    - Allow the specific port through firewall:
      ```powershell
-     New-NetFirewallRule -DisplayName "Terminal Chat" -Direction Inbound -LocalPort 12345 -Protocol TCP -Action Allow
+     New-NetFirewallRule -DisplayName "Terminal Chat" -Direction Inbound -LocalPort 8008 -Protocol TCP -Action Allow
      ```
 
 ### Port Already in Use
@@ -241,7 +241,7 @@ If you see "execution of scripts is disabled":
 ## Technical Details
 
 - **Protocol**: TCP/IP
-- **Default Port**: 12345
+- **Default Port**: 8008
 - **Encoding**: UTF-8
 - **Max Message Length**: ~4096 characters
 - **Connection**: Persistent until disconnect
